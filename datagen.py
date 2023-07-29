@@ -7,7 +7,6 @@ import cv2
 import torch
 
 class Context:
-    """The Context defines the interface of interest to clients."""
     def __init__(self, strategy):
         self._strategy = strategy
 
@@ -24,8 +23,7 @@ class Context:
 
 
 class Strategy(ABC):
-    """The Strategy interface declares operations common to all supported versions
-    of some algorithm."""
+    """The Strategy interface declares operations common to all supported versions of some algorithm."""
 
     @abstractmethod
     def do_process(self, image_path):
@@ -43,7 +41,7 @@ class CannyStrategy(Strategy):
 
 class HEDStrategy(Strategy):
     def do_process(self, image_path):
-        # implement the HED here
+        #leaved blanked for later implementation
         pass
 
 
