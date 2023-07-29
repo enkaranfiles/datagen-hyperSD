@@ -16,7 +16,9 @@ def read_image_from_url(image_url):
     return cv2.imdecode(image_array, -1)
 
 def sanitize_filename(name):
-    # This pattern will match any character that's not a letter, number, underscore, or hyphen
+    '''
+    added prompt sentence the image name head, so imwrite gives error! 
+    '''
     pattern = '[^a-zA-Z0-9_-]'
     return re.sub(pattern, '', name)
 
@@ -47,7 +49,6 @@ def process_and_save_images(df):
             print(f'Error for index {index}, error message: {e}')
 
 if __name__ == '__main__':
-    # Replace 'your_file.parquet' with your actual parquet file path
     df = pd.read_parquet('filtered_data.parquet', engine='pyarrow')
     df.reset_index(drop=True, inplace=True)
     process_and_save_images(df)
