@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import cv2
+import random
+from torchvision.transforms import Compose
+import cv2
+import torch
 
 class Context:
     """The Context defines the interface of interest to clients."""
@@ -29,26 +33,13 @@ class Strategy(ABC):
 
 
 class CannyStrategy(Strategy):
-    def do_process(self, image_path, low_threshold=100, high_threshold=200):
-        # read the image
-        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-
-        # check if image reading is successful
-        if image is None:
-            print(f"Failed to load image at {image_path}")
-            return None
-
-        # convert to grayscale
+    def do_process(self, image):
+        low_threshold = random.randint(0, 255)
+        high_threshold = random.randint(low_threshold, 255)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # apply Gaussian blur
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-        # perform the canny edge detection
         edges = cv2.Canny(blurred, low_threshold, high_threshold)
-
         return edges
-
 
 class HEDStrategy(Strategy):
     def do_process(self, image_path):
@@ -57,6 +48,36 @@ class HEDStrategy(Strategy):
 
 
 class DepthStrategy(Strategy):
-    def do_process(self, image_path):
-        # implement the Midas for monocular depth estimation here
-        pass
+        def do_process(self, image):
+            model_type = "DPT_Large"  # MiDaS v3 - Large     (highest accuracy, slowest inference speed)
+            # model_type = "DPT_Hybrid"   # MiDaS v3 - Hybrid    (medium accuracy, medium inference speed)
+            # model_type = "MiDaS_small"  # MiDaS v2.1 - Small   (lowest accuracy, highest inference speed)
+            midas = torch.hub.load("intel-isl/MiDaS", model_type)
+            device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+            midas.to(device)
+            midas.eval()
+
+            midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+
+            if model_type == "DPT_Large" or model_type == "DPT_Hybrid":
+                transform = midas_transforms.dpt_transform
+            else:
+                transform = midas_transforms.small_transform
+
+            img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            input_batch = transform(img).to(device)
+
+            with torch.no_grad():
+                prediction = midas(input_batch)
+
+                prediction = torch.nn.functional.interpolate(
+                    prediction.unsqueeze(1),
+                    size=img.shape[:2],
+                    mode="bicubic",
+                    align_corners=False,
+                ).squeeze()
+
+            output = prediction.cpu().numpy()
+            # return the depth map
+            return output

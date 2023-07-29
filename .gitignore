@@ -1,1 +1,4 @@
 parquet-files
+condition
+input_image
+filtered_data.parquet

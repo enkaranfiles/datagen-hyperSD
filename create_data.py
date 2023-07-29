@@ -32,7 +32,7 @@ class DataFrameParquetWriter(DataProcessor):
         self.output_path = output_path
 
     def process(self, data):
-        data.to_parquet(self.output_path)
+        data.to_parquet(self.output_path, index=False)
         return data
 
 class DataPipeline:
@@ -45,13 +45,7 @@ class DataPipeline:
             data = processor.process(data)
         return data
 
-file_paths = ['parquet-files/train-00000-of-00007-29aec9150af50f9f.parquet',
-            'parquet-files/train-00001-of-00007-060633a36bcf0956.parquet', 
-            'parquet-files/train-00002-of-00007-709151a2715d894d.parquet',
-            'parquet-files/train-00003-of-00007-2dc95366d4278bb8.parquet', 
-            'parquet-files/train-00004-of-00007-f06fcc8b41bf5fdf.parquet', 
-            'parquet-files/train-00005-of-00007-f1ec12a5b5b3e6c0.parquet',
-            'parquet-files/train-00006-of-00007-57e09e020b9c2df4.parquet']
+file_paths = ['parquet-files/train-00000-of-00007-29aec9150af50f9f.parquet']
 
 processors = [
     ParquetReader(file_paths),
