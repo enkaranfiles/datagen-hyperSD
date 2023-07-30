@@ -9,7 +9,9 @@ import urllib.request
 
 import re
 from multiprocessing import Pool
+import logging
 
+logging.basicConfig(filename='data_generation_log.txt', level=logging.ERROR)
 
 def read_image_from_url(image_url):
     with urllib.request.urlopen(image_url) as url_response:
@@ -36,27 +38,30 @@ def save_image(image, image_name, folder):
 def process_single_image(args):
     context = Context(CannyStrategy())
     index, data = args
+    counter = 0
     try:
         image = read_image_from_url(data['URL'])
         save_image(image, f'image_{data["TEXT"]}', 'input_image')
         canny_image = context.process_image(image)
         save_image(canny_image, f'canny_image_{data["TEXT"]}', 'condition/canny')
     except Exception as e:
-        print(f'Error for index {index}, error message: {e}')
+        error_message = f'Error for index {index}, error message: {e}'
+        logging.error(error_message)
+        counter += 1
+        print(f'Number of loosed files currently: ', counter)
 
-def process_and_save_images(df, num_process=4):
+
+def process_and_save_images(df, num_process=11):
     with Pool(processes=num_process) as pool:
-        args_list = list(df.iterrows())
+        args_list = tqdm(list(df.iterrows()))
         pool.map(process_single_image, args_list)
 
 if __name__ == '__main__':
-
     '''
     filtered_data: 512x512 and overall rate > 6.0
     '''
 
     df = pd.read_parquet('filtered_data.parquet', engine='pyarrow')
     df.reset_index(drop=True, inplace=True)
-
     # choose according to your software support
     process_and_save_images(df, num_process=4)
