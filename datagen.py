@@ -32,7 +32,7 @@ class Strategy(ABC):
 
 class CannyStrategy(Strategy):
     def do_process(self, image):
-        low_threshold = random.randint(0, 255)
+        low_threshold = random.randint(80, 200)
         high_threshold = random.randint(low_threshold, 255)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)

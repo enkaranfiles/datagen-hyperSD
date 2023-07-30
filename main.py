@@ -8,6 +8,7 @@ from tqdm import tqdm
 import urllib.request
 
 import re
+from multiprocessing import Pool
 
 
 def read_image_from_url(image_url):
@@ -17,7 +18,7 @@ def read_image_from_url(image_url):
 
 def sanitize_filename(name):
     '''
-    added prompt sentence the image name head, so imwrite gives error! 
+    added prompt sentence the image name head, so imwrite gives error!
     '''
     pattern = '[^a-zA-Z0-9_-]'
     return re.sub(pattern, '', name)
@@ -32,23 +33,30 @@ def save_image(image, image_name, folder):
     else:
         cv2.imwrite(f'{folder}/{sanitized_name}.jpg', image)
 
-def process_and_save_images(df):
+def process_single_image(args):
     context = Context(CannyStrategy())
-    for index, data in tqdm(df.iterrows(), total=df.shape[0]):
-        try:
-            image = read_image_from_url(data['URL'])
-            save_image(image, f'image_{data["TEXT"]}', 'input_image')
+    index, data = args
+    try:
+        image = read_image_from_url(data['URL'])
+        save_image(image, f'image_{data["TEXT"]}', 'input_image')
+        canny_image = context.process_image(image)
+        save_image(canny_image, f'canny_image_{data["TEXT"]}', 'condition/canny')
+    except Exception as e:
+        print(f'Error for index {index}, error message: {e}')
 
-            canny_image = context.process_image(image)
-            save_image(canny_image, f'canny_image_{data["TEXT"]}', 'condition/canny')
-
-            context.strategy = DepthStrategy()
-            depth_image = context.process_image(image)
-            save_image(depth_image, f'depth_image_{data["TEXT"]}', 'condition/depth')
-        except Exception as e:
-            print(f'Error for index {index}, error message: {e}')
+def process_and_save_images(df, num_process=4):
+    with Pool(processes=num_process) as pool:
+        args_list = list(df.iterrows())
+        pool.map(process_single_image, args_list)
 
 if __name__ == '__main__':
+
+    '''
+    filtered_data: 512x512 and overall rate > 6.0
+    '''
+
     df = pd.read_parquet('filtered_data.parquet', engine='pyarrow')
     df.reset_index(drop=True, inplace=True)
-    process_and_save_images(df)
+
+    # choose according to your software support
+    process_and_save_images(df, num_process=4)
